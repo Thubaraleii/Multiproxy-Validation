@@ -1,4 +1,43 @@
 
+import numpy as np
+from scipy.interpolate import griddata
+
+# Dados fornecidos na imagem para interpolação
+data_elements = {
+    "Profundidade (cm)": [10, 35, 45, 60, 68, 72, 76, 84, 89, 95, 99, 101, 102],
+    "Al2O3": [None, None, 14.13, 14.31, 13.69, 14.1, 13.62, 15.01, 14.63, 13.95, 14.89, 13.02, 13.12],
+    "Fe2O3": [None, None, 7.06, 6.46, 6.41, 5.23, 7.41, 5.99, 6.26, 5.76, 5.25, 4.94, 4.92],
+    "Cr2O3": [None, None, 0.039, 0.064, 0.037, 0.038, 0.037, 0.034, 0.032, 0.016, 0.019, 0.028, 0.028],
+    "Cr": [None, None, 266.84, 369.47, 253.16, 260, 253.16, 164.21, 164.21, 109.47, 91.58, 191.58, 191.58]
+}
+
+# Convertendo para DataFrame
+df_elements = pd.DataFrame(data_elements)
+
+# Profundidades conhecidas e colunas com dados conhecidos
+known_depths = df_elements["Profundidade (cm)"].dropna()
+columns_to_interpolate = ["Al2O3", "Fe2O3", "Cr2O3", "Cr"]
+
+# Ponto de profundidade onde queremos interpolar (35 cm e 10 cm)
+target_depths = [35, 10]
+
+# Função para interpolação IDW
+def interpolate_idw(column, known_depths, target_depths):
+    known_values = df_elements[column].dropna()
+    known_positions = known_depths[~df_elements[column].isna()]
+    return griddata(known_positions.to_numpy(), known_values.to_numpy(), target_depths, method='nearest')
+
+# Aplicando interpolação para cada coluna
+interpolated_values = {depth: {} for depth in target_depths}
+for column in columns_to_interpolate:
+    interpolated_column_values = interpolate_idw(column, known_depths, target_depths)
+    for i, depth in enumerate(target_depths):
+        interpolated_values[depth][column] = interpolated_column_values[i]
+
+# Apresentando os valores interpolados
+interpolated_df = pd.DataFrame(interpolated_values).T
+import ace_tools as tools; tools.display_dataframe_to_user(name="Interpolated Values for 4B and 4C", dataframe=interpolated_df)
+
 # Produto: Modelo 1 (Mod1)
 # Código para gerar o gráfico Mod1 com a configuração específica
 def gerar_grafico_mod1(coluna_dados, labels):
